@@ -1,7 +1,11 @@
 package com.example.base_fourcomics_alarm;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTabHost;
 import android.util.Log;
@@ -20,6 +24,7 @@ import android.widget.TabHost;
 import android.widget.TabHost.TabSpec;
 import android.widget.TextView;
 
+import com.example.alarm_service.AlarmService;
 import com.example.control_alarm.AlarmFragment;
 import com.example.control_four_comics.FourComicsSelectFragment;
 import com.example.control_recommend_app.IntroductionAndRecomendAppFragment;
@@ -31,7 +36,7 @@ import com.google.ads.AdView;
 public class MainActivity extends FragmentActivity {
 
 	private static final String TAG = MainActivity.class.getSimpleName();
-	
+
 	public static TextView theme;
 	public static Button back_bt;
 	private FrameLayout mediation;
@@ -42,10 +47,12 @@ public class MainActivity extends FragmentActivity {
 
 	private enum TAB {
 		ALARM(0, R.drawable.tab_btn_alarm, R.drawable.tab_btn_alarm_background,
-				AlarmFragment.class), 
-		COMICS_LIST(1,R.drawable.tab_btn_comic_list,R.drawable.tab_btn_comic_list_background,
-				FourComicsSelectFragment.class), 
-		RECOMMEND_APP(2,R.drawable.tab_btn_recommendation_app,R.drawable.tab_btn_recommendation_aap_background,
+				AlarmFragment.class), COMICS_LIST(1,
+				R.drawable.tab_btn_comic_list,
+				R.drawable.tab_btn_comic_list_background,
+				FourComicsSelectFragment.class), RECOMMEND_APP(2,
+				R.drawable.tab_btn_recommendation_app,
+				R.drawable.tab_btn_recommendation_aap_background,
 				IntroductionAndRecomendAppFragment.class);
 
 		/**
@@ -69,7 +76,6 @@ public class MainActivity extends FragmentActivity {
 	private TAB[] tab;
 	private ImageButton[] tabButton;
 	private TabSpec[] tabSpec;
-
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -104,22 +110,44 @@ public class MainActivity extends FragmentActivity {
 		 * 広告周り
 		 */
 		mediation = (FrameLayout) findViewById(R.id.mediation);
-		adView = new AdView(this, new AdSize(AdSize.FULL_WIDTH,
-				AdSize.AUTO_HEIGHT), "9e2da437b1654c13"); // mediation
+		adView = new AdView(this, new AdSize(AdSize.FULL_WIDTH, AdSize.AUTO_HEIGHT), "9e2da437b1654c13"); // mediation
 
 		// 画面サイズに合わせる
 		ResizeDisplay resaze_banner = new ResizeDisplay(this);
-		LinearLayout.LayoutParams banner_params = new LinearLayout.LayoutParams(
-				LayoutParams.MATCH_PARENT,
-				(int) resaze_banner.resizeDisplay(banner_saize),
-				Gravity.NO_GRAVITY);
+		LinearLayout.LayoutParams banner_params = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, (int) resaze_banner.resizeDisplay(banner_saize), Gravity.NO_GRAVITY);
 
 		mediation.setLayoutParams(banner_params);
 		mediation.addView(adView);
 		AdRequest adRequest = new AdRequest();
 		adView.loadAd(adRequest);
+
+		Intent intent = getIntent();
+		boolean isAlarm = intent.getBooleanExtra(AlarmService.TAG, false);
+		executeAlarm(isAlarm);
 	}
 
+	/**
+	 * セットされていればアラーﾑ実行
+	 *
+	 * @param isAlarm
+	 * @author toyozumi
+	 */
+	private void executeAlarm(boolean isAlarm) {
+		if (isAlarm) {
+			final Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+			vibrator.vibrate(new long[]{500, 500}, 0);
+			AlertDialog.Builder adb = new AlertDialog.Builder(MainActivity.this);
+			adb.setTitle("タイマーテスト");
+			adb.setMessage("時間です");
+			adb.setPositiveButton("アラーム停止", new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					vibrator.cancel();
+				}
+			});
+			adb.show();
+		}
+	}
 	/**
 	 * タブ初期化
 	 */
@@ -148,19 +176,16 @@ public class MainActivity extends FragmentActivity {
 		Bundle[] args = new Bundle[size];
 		// bundle = new Bundle[size];
 		for (int i = 0; i < size; i++) {
-			tabSpec[i] = mTabHost.newTabSpec("tab" + (i + 1)).setIndicator(
-					"tab" + (i + 1));
+			tabSpec[i] = mTabHost.newTabSpec("tab" + (i + 1)).setIndicator("tab" + (i + 1));
 			tabSpec[i].setIndicator(tabButton[i]);
 			args[i] = new Bundle();
 			// ///拡張for文でもっとすっきりまとめられる？？/////tabSpec[i],tabButton[i],bundle[i]は、連想配列のパラメータを使えば良い？？/////逆に煩雑になりそう。/////このままがbetter。
 			if (tab[i] == TAB.ALARM) {
 				args[i].putString("root", TAB.ALARM.fragmentClass.getName());
 			} else if (tab[i] == TAB.COMICS_LIST) {
-				args[i].putString("root",
-						TAB.COMICS_LIST.fragmentClass.getName());
+				args[i].putString("root", TAB.COMICS_LIST.fragmentClass.getName());
 			} else if (tab[i] == TAB.RECOMMEND_APP) {
-				args[i].putString("root",
-						TAB.RECOMMEND_APP.fragmentClass.getName());
+				args[i].putString("root", TAB.RECOMMEND_APP.fragmentClass.getName());
 			}
 			mTabHost.addTab(tabSpec[i], TabRootFragment.class, args[i]);
 
@@ -187,33 +212,32 @@ public class MainActivity extends FragmentActivity {
 		tabButton[first_forcus].setImageLevel(1);
 		for (int i = 0; i < size; i++) {
 			final int index = i;
-			//onClickだとtabHostに影響がでてFragmentの切り替えが上手くいかない。
-			//onTouchだと、クリックと判定されない動作のときにタブの画像が切り替えられてしまう。
+			// onClickだとtabHostに影響がでてFragmentの切り替えが上手くいかない。
+			// onTouchだと、クリックと判定されない動作のときにタブの画像が切り替えられてしまう。
 			tabButton[index].setOnTouchListener(new OnTouchListener() {
 
 				@Override
 				public boolean onTouch(View v, MotionEvent event) {
 
-					
-					switch(event.getAction()){
-					case MotionEvent.ACTION_DOWN:
-						Log.v(TAG, "Down:"+event.getAction());
-						break;
-					case MotionEvent.ACTION_MOVE:
-						Log.v(TAG, "Move:"+event.getAction());
-						break;
-					case MotionEvent.ACTION_UP:
-						Log.v(TAG, "Up:"+event.getAction());
-						for (int j = 0; j < size; j++) {
-							tabButton[j].setImageLevel(0);
-						}
-						tabButton[index].setImageLevel(1);
-						break;
-					case MotionEvent.ACTION_CANCEL:
-						Log.v(TAG, "Cancel:"+event.getAction());
-						break;
+					switch (event.getAction()) {
+						case MotionEvent.ACTION_DOWN :
+							Log.v(TAG, "Down:" + event.getAction());
+							break;
+						case MotionEvent.ACTION_MOVE :
+							Log.v(TAG, "Move:" + event.getAction());
+							break;
+						case MotionEvent.ACTION_UP :
+							Log.v(TAG, "Up:" + event.getAction());
+							for (int j = 0; j < size; j++) {
+								tabButton[j].setImageLevel(0);
+							}
+							tabButton[index].setImageLevel(1);
+							break;
+						case MotionEvent.ACTION_CANCEL :
+							Log.v(TAG, "Cancel:" + event.getAction());
+							break;
 					}
-					
+
 					return false;
 				}
 			});
@@ -221,8 +245,7 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	private TabRootFragment getCurrentFragment() {
-		return (TabRootFragment) getSupportFragmentManager().findFragmentById(
-				R.id.realtabcontent);
+		return (TabRootFragment) getSupportFragmentManager().findFragmentById(R.id.realtabcontent);
 	}
 
 	@Override
@@ -238,23 +261,22 @@ public class MainActivity extends FragmentActivity {
 		super.onDestroy();
 		mTabHost = null;
 	}
-	
+
 	/**
-	 *　fragmentのレイアウトが広告部分とかぶるので調整している。
-	 *　広告の高さ分だけ余白を設けている。
+	 * 　fragmentのレイアウトが広告部分とかぶるので調整している。 　広告の高さ分だけ余白を設けている。
+	 *
 	 * @param layout
 	 */
-	public void setPaddingBottom(LinearLayout layout){
+	public void setPaddingBottom(LinearLayout layout) {
 		layout.setPadding(layout.getPaddingLeft(), layout.getPaddingTop(), layout.getPaddingRight(), mediation.getHeight());
 	}
-	
-    public void setPaddingBottom(FrameLayout layout){
-    	layout.setPadding(layout.getPaddingLeft(), layout.getPaddingTop(), layout.getPaddingRight(), mediation.getHeight());
+
+	public void setPaddingBottom(FrameLayout layout) {
+		layout.setPadding(layout.getPaddingLeft(), layout.getPaddingTop(), layout.getPaddingRight(), mediation.getHeight());
 	}
-    
-    public void setPaddingBottom(RelativeLayout layout){
-    	layout.setPadding(layout.getPaddingLeft(), layout.getPaddingTop(), layout.getPaddingRight(), mediation.getHeight());
+
+	public void setPaddingBottom(RelativeLayout layout) {
+		layout.setPadding(layout.getPaddingLeft(), layout.getPaddingTop(), layout.getPaddingRight(), mediation.getHeight());
 	}
-	
-	
+
 }

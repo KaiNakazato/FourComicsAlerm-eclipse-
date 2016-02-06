@@ -40,11 +40,13 @@
         <meta-data
             android:name="Adlantis_Publisher_ID"
             android:value="MTk1NDg%3D%0A" />
+        <service android:name="com.example.alarm_service.AlarmService" />
     </application>
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
 </manifest>
